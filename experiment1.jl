@@ -200,6 +200,10 @@ begin
 	end
 end
 
+# ╔═╡ d3ec6605-a14f-4164-a56b-b2ccff0a0df6
+# Note: It would be possible to turn the packages into hyperlinked objects...
+println(Term.creat_link("https://google.com", "Google"))
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
@@ -231,7 +235,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0-DEV"
 manifest_format = "2.0"
-project_hash = "e6559442ed8d26bcd658ec601083d56f1afbe103"
+project_hash = "2a79d753909c5c8cd7f77c3ecabc1009cc0bdbd6"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -666,5 +670,6 @@ version = "17.4.0+0"
 # ╠═95cd4181-f293-4920-adef-a00584dea951
 # ╠═75427a86-aa0b-49fc-b6f3-82424d19e897
 # ╠═a14d7f5a-a387-40fc-8eed-09881625789a
+# ╠═d3ec6605-a14f-4164-a56b-b2ccff0a0df6
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
