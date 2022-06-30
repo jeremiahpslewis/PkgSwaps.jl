@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.18.0
+# v0.19.9
 
 using Markdown
 using InteractiveUtils
@@ -28,6 +28,7 @@ begin
 	using ShiftedArrays
 	using PlutoUI
 	using CommonMark
+	using Term
 
 	if !("General" in readdir())
 		run(`git clone https://github.com/JuliaRegistries/General.git`)
@@ -135,7 +136,11 @@ pkg_analysis = @chain pkg_info_df begin
 	@groupby(:new_dependencies, :dropped_dependencies)
 	@combine(:pkg_count = length(:package), :packages = join(:package, ","))
 	@sort(-:pkg_count)
-	@subset((:new_dependencies != nothing) & (:dropped_dependencies != nothing))
+	@subset((:new_dependencies != nothing) &
+			(:dropped_dependencies != nothing) &
+			(:new_dependencies != ["Test"]) &
+			(:dropped_dependencies != ["Test"])
+	)
 	@transform(:difflist = sort([:new_dependencies; :dropped_dependencies]))
 end
 
@@ -153,7 +158,47 @@ pkg_swaps = sort(unique(vcat(pkg_analysis[!, :new_dependencies]..., pkg_analysis
 @bind pkg_selected Select(pkg_swaps)
 
 # ╔═╡ b48d27c0-501b-438a-b2e9-f150bcaf876e
-@chain pkg_analysis @subset((pkg_selected ∈ :new_dependencies) | (pkg_selected ∈ :dropped_dependencies)) @select(:new_dependencies, :dropped_dependencies, :pkg_count, :packages)
+@chain pkg_analysis @subset((pkg_selected ∈ :new_dependencies) | (pkg_selected ∈ :dropped_dependencies)) @sort(-:pkg_count) @select(:new_dependencies, :dropped_dependencies, :pkg_count, :packages)
+
+# ╔═╡ 8bca07fd-479b-4e5d-acb7-0c446692c837
+cm"## Try things out with sample file:"
+
+# ╔═╡ 95cd4181-f293-4920-adef-a00584dea951
+
+
+# ╔═╡ 75427a86-aa0b-49fc-b6f3-82424d19e897
+begin
+	deps_data_toml = TOML.parsefile("IPS_Project.toml")
+	deps_list = collect(keys(deps_data_toml["deps"]))
+	deps_list = [[i] for i in deps_list]
+	sample_output = @chain pkg_analysis begin
+		@subset(
+			(:dropped_dependencies ∈ deps_list)
+		)
+		@subset(:pkg_count > 1)
+		@select(:dropped_dependencies, :new_dependencies)
+	end
+end
+
+# ╔═╡ a14d7f5a-a387-40fc-8eed-09881625789a
+begin
+	println(
+		@underline("Suggested Package Swaps")
+	)
+	dep_out = ""
+	for r in eachrow(sample_output)
+		if dep_out != r[:dropped_dependencies][1]
+			if dep_out != ""
+				println()
+			end
+		end
+		dep_out = r[:dropped_dependencies][1]
+		dep_in = r[:new_dependencies][1]
+		println(
+		    @red(dep_out) * " => " * @green(dep_in)
+		)
+	end
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -167,6 +212,7 @@ PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 ReadableRegex = "cbbcb084-453d-4c4c-b292-e315607ba6a4"
 ShiftedArrays = "1277b4bf-5013-50f5-be3d-901d8477a67a"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+Term = "22787eb5-b846-44ae-b979-8e399b8463ab"
 
 [compat]
 Chain = "~0.4.10"
@@ -176,15 +222,16 @@ DataFrames = "~1.3.2"
 PlutoUI = "~0.7.37"
 ReadableRegex = "~0.3.2"
 ShiftedArrays = "~1.0.0"
+Term = "~1.0.1"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.8.0-beta1"
+julia_version = "1.9.0-DEV"
 manifest_format = "2.0"
-project_hash = "18afafeefceeb1f2dd2bd49ccc36bfe5724c11d6"
+project_hash = "e6559442ed8d26bcd658ec601083d56f1afbe103"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -228,7 +275,7 @@ version = "3.42.0"
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "e66e0078-7015-5450-92f7-15fbd957f2ae"
-version = "0.5.0+0"
+version = "0.5.2+0"
 
 [[deps.Crayons]]
 git-tree-sha1 = "249fe38abf76d48563e2f4556bebd215aa317e15"
@@ -270,10 +317,17 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 [[deps.DelimitedFiles]]
 deps = ["Mmap"]
 uuid = "8bb1440f-4735-579b-a4ab-409b98df4dab"
+version = "1.0.0"
 
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+
+[[deps.DocStringExtensions]]
+deps = ["LibGit2"]
+git-tree-sha1 = "b19534d1895d702889b219c382a6e18010797f0b"
+uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
+version = "0.8.6"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
@@ -298,6 +352,12 @@ version = "0.4.2"
 [[deps.Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
+
+[[deps.Highlights]]
+deps = ["DocStringExtensions", "InteractiveUtils", "REPL"]
+git-tree-sha1 = "d7e1d65e8599f2ee8df09c1461391e66ad9e2885"
+uuid = "eafb193a-b7ab-5a9e-9068-77385905fa72"
+version = "0.5.1"
 
 [[deps.Hyperscript]]
 deps = ["Test"]
@@ -344,7 +404,7 @@ version = "0.6.3"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "7.81.0+0"
+version = "7.83.1+1"
 
 [[deps.LibGit2]]
 deps = ["Base64", "NetworkOptions", "Printf", "SHA"]
@@ -359,7 +419,7 @@ version = "1.10.2+0"
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 
 [[deps.LinearAlgebra]]
-deps = ["Libdl", "libblastrampoline_jll"]
+deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 
 [[deps.Logging]]
@@ -387,6 +447,11 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 version = "2022.2.1"
 
+[[deps.MyterialColors]]
+git-tree-sha1 = "01d8466fb449436348999d7c6ad740f8f853a579"
+uuid = "1c23619d-4212-4747-83aa-717207fae70f"
+version = "0.3.0"
+
 [[deps.NetworkOptions]]
 uuid = "ca575930-c2e3-43a9-ace4-1e988b2c1908"
 version = "1.2.0"
@@ -394,12 +459,18 @@ version = "1.2.0"
 [[deps.OpenBLAS_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
-version = "0.3.17+2"
+version = "0.3.20+0"
 
 [[deps.OrderedCollections]]
 git-tree-sha1 = "85f8e6578bf1f9ee0d11e7bb1b1456435479d47c"
 uuid = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 version = "1.4.1"
+
+[[deps.Parameters]]
+deps = ["OrderedCollections", "UnPack"]
+git-tree-sha1 = "34c0e9ad262e5f7fc75b10a9952ca7692cfc5fbe"
+uuid = "d96e819e-fc66-5662-9728-84c9c7592b0a"
+version = "0.12.3"
 
 [[deps.Parsers]]
 deps = ["Dates"]
@@ -408,7 +479,7 @@ uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.2.3"
 
 [[deps.Pkg]]
-deps = ["Artifacts", "Dates", "Downloads", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
+deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 version = "1.8.0"
 
@@ -433,6 +504,12 @@ version = "1.3.1"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[[deps.ProgressLogging]]
+deps = ["Logging", "SHA", "UUIDs"]
+git-tree-sha1 = "80d919dee55b9c50e8d9e2da5eeafff3fe58b539"
+uuid = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
+version = "0.1.4"
 
 [[deps.REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
@@ -478,12 +555,17 @@ uuid = "a2af1166-a08f-5f64-846c-94a0d3cef48c"
 version = "1.0.1"
 
 [[deps.SparseArrays]]
-deps = ["LinearAlgebra", "Random"]
+deps = ["DelimitedFiles", "Libdl", "LinearAlgebra", "Random", "Serialization", "SuiteSparse_jll"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 
 [[deps.Statistics]]
 deps = ["LinearAlgebra", "SparseArrays"]
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+
+[[deps.SuiteSparse_jll]]
+deps = ["Artifacts", "Libdl", "Pkg", "libblastrampoline_jll"]
+uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
+version = "5.10.1+0"
 
 [[deps.TOML]]
 deps = ["Dates"]
@@ -507,6 +589,12 @@ deps = ["ArgTools", "SHA"]
 uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 version = "1.10.0"
 
+[[deps.Term]]
+deps = ["Dates", "Highlights", "InteractiveUtils", "Logging", "Markdown", "MyterialColors", "OrderedCollections", "Parameters", "ProgressLogging", "Tables", "UUIDs", "UnicodeFun"]
+git-tree-sha1 = "9b7ea2beefb11e89211b35b6e0d59cb31aa24550"
+uuid = "22787eb5-b846-44ae-b979-8e399b8463ab"
+version = "1.0.1"
+
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
@@ -520,28 +608,39 @@ version = "1.3.0"
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 
+[[deps.UnPack]]
+git-tree-sha1 = "387c1f73762231e86e0c9c5443ce3b4a0a9a0c2b"
+uuid = "3a884ed6-31ef-47d7-9d2a-63182c4928ed"
+version = "1.0.2"
+
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+
+[[deps.UnicodeFun]]
+deps = ["REPL"]
+git-tree-sha1 = "53915e50200959667e78a92a418594b428dffddf"
+uuid = "1cfade01-22cf-5700-b092-accc4b62d6e1"
+version = "0.4.1"
 
 [[deps.Zlib_jll]]
 deps = ["Libdl"]
 uuid = "83775a58-1f1d-513f-b197-d71354ab007a"
-version = "1.2.12+1"
+version = "1.2.12+3"
 
 [[deps.libblastrampoline_jll]]
-deps = ["Artifacts", "Libdl", "OpenBLAS_jll"]
+deps = ["Artifacts", "Libdl"]
 uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
-version = "5.0.1+0"
+version = "5.1.1+0"
 
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.41.0+1"
+version = "1.47.0+0"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
-version = "16.2.1+1"
+version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
@@ -563,5 +662,9 @@ version = "16.2.1+1"
 # ╠═12d5db00-8d44-48d5-ac94-6a067106c3fc
 # ╠═812a3dbb-90dc-43a9-89ca-e38b88919057
 # ╠═b48d27c0-501b-438a-b2e9-f150bcaf876e
+# ╟─8bca07fd-479b-4e5d-acb7-0c446692c837
+# ╠═95cd4181-f293-4920-adef-a00584dea951
+# ╠═75427a86-aa0b-49fc-b6f3-82424d19e897
+# ╠═a14d7f5a-a387-40fc-8eed-09881625789a
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
