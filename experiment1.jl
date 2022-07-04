@@ -154,6 +154,20 @@ end
 # ╔═╡ 12d5db00-8d44-48d5-ac94-6a067106c3fc
 pkg_swaps = sort(unique(vcat(pkg_analysis[!, :new_dependencies]..., pkg_analysis[!, :dropped_dependencies]...)))
 
+# ╔═╡ 32277022-83d6-484e-ad49-e0f965f8d274
+# @chain pkg_analysis @subset(:package == "DataFrames")# @sort(:version)
+@chain pkg_analysis @sort(-:pkg_count)
+# Graphs <- LightGraphs 61 times
+# OrderedCollections <- DataStructures 14
+# GeometryBasics <- GeometryTypes 14
+# Makie <- AbstractPlotting 12
+# CUDA <- CuArrays 9
+# Downloads <- HTTP 8
+# BinaryProvider <- BinDeps 8
+# JSON3 <- JSON 8
+# SciMLBase <- DiffEqBase 7
+# pkg_analysis
+
 # ╔═╡ 812a3dbb-90dc-43a9-89ca-e38b88919057
 @bind pkg_selected Select(pkg_swaps)
 
@@ -180,11 +194,48 @@ begin
 	end
 end
 
+# ╔═╡ 4985e455-306a-432c-bee9-1f9c81facdce
+begin
+	pkg_toml_regex = "General/" * exactly(1, LETTER) *
+					  "/" * one_or_more(char_not_in("/")) *
+					  "/Package.toml"
+	pkg_files = []
+	for (root, dirs, files) in walkdir("General")
+		for file in files
+				full_path = joinpath(root, file)
+			if match(pkg_toml_regex, full_path) != nothing
+				push!(pkg_files, full_path)
+			end
+		end
+	end
+	
+	pkg_files
+end
+
+# ╔═╡ 19da8301-7836-4a3f-b6e0-01356f585a52
+function parse_pkg_toml(pkg_path)
+	# Borrowed from here: https://github.com/JuliaLang/Pkg.jl/blob/503f31f64bcda5a60f0b3676730b689ff1f91aa9/src/Registry/registry_instance.jl#L154
+	d_v = TOML.parsefile(pkg_path)	
+	return d_v
+end
+
+# ╔═╡ 198026fe-0ce1-4144-b005-9fdcd05b8a61
+df_pkg = @chain pkg_files begin
+	parse_pkg_toml.()
+	hcat
+	DataFrame(:auto)
+	@select(:pkg = :x1["name"], :repo = :x1["repo"])
+end
+
+# ╔═╡ b80ae0b7-3eb3-44c8-b2bc-e908f8004902
+
+
 # ╔═╡ a14d7f5a-a387-40fc-8eed-09881625789a
 begin
 	println(
-		@underline("Suggested Package Swaps")
+		@bold("Suggested Package Swaps:")
 	)
+	println()
 	dep_out = ""
 	for r in eachrow(sample_output)
 		if dep_out != r[:dropped_dependencies][1]
@@ -194,8 +245,14 @@ begin
 		end
 		dep_out = r[:dropped_dependencies][1]
 		dep_in = r[:new_dependencies][1]
+
+		dep_out_link = @chain df_pkg @subset(:pkg == dep_out) @select(:repo) _[!, 1][1]
+		dep_in_link = @chain df_pkg @subset(:pkg == dep_in) @select(:repo) _[!, 1][1]
+
+		dep_out_fmt = Term.creat_link(dep_out_link, String(dep_out))
+		dep_in_fmt = Term.creat_link(dep_in_link, String(dep_in))
 		println(
-		    @red(dep_out) * " => " * @green(dep_in)
+		    @red(dep_out_fmt) * " => " * @green(dep_in_fmt)
 		)
 	end
 end
@@ -203,6 +260,9 @@ end
 # ╔═╡ d3ec6605-a14f-4164-a56b-b2ccff0a0df6
 # Note: It would be possible to turn the packages into hyperlinked objects...
 println(Term.creat_link("https://google.com", "Google"))
+
+# ╔═╡ 966c4199-2f2c-4dfe-8488-28cf4adfb740
+dep_out_link
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -664,12 +724,18 @@ version = "17.4.0+0"
 # ╠═056ec327-0108-4d19-a081-eb013af79ed9
 # ╠═4f1297e0-9a1b-4f1a-917e-f36dbae1a95e
 # ╠═12d5db00-8d44-48d5-ac94-6a067106c3fc
+# ╠═32277022-83d6-484e-ad49-e0f965f8d274
 # ╠═812a3dbb-90dc-43a9-89ca-e38b88919057
 # ╠═b48d27c0-501b-438a-b2e9-f150bcaf876e
 # ╟─8bca07fd-479b-4e5d-acb7-0c446692c837
 # ╠═95cd4181-f293-4920-adef-a00584dea951
 # ╠═75427a86-aa0b-49fc-b6f3-82424d19e897
+# ╠═4985e455-306a-432c-bee9-1f9c81facdce
+# ╠═19da8301-7836-4a3f-b6e0-01356f585a52
+# ╠═198026fe-0ce1-4144-b005-9fdcd05b8a61
+# ╠═b80ae0b7-3eb3-44c8-b2bc-e908f8004902
 # ╠═a14d7f5a-a387-40fc-8eed-09881625789a
 # ╠═d3ec6605-a14f-4164-a56b-b2ccff0a0df6
+# ╠═966c4199-2f2c-4dfe-8488-28cf4adfb740
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
