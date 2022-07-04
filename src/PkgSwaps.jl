@@ -141,12 +141,19 @@ function print_pkg_swap_output(pkg_files, sample_output)
         @select(:pkg = :x1["name"], :repo = :x1["repo"])
     end
 
+    if nrow(sample_output) == 0
+        println("✨✨ No package swaps found.")
+        return
+    end
+
+
     println(
         @bold("Suggested Package Swaps:")
     )
     println()
     
     dep_out = ""
+
     for r in eachrow(sample_output)
         if dep_out != r[:dropped_dependencies][1]
             if dep_out != ""
