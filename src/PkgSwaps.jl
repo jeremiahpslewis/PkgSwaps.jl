@@ -1,4 +1,4 @@
-module IteratedProcessSimulations
+module PkgSwaps
 
 using TOML
 using ReadableRegex
