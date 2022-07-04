@@ -95,10 +95,12 @@ function generate_pkg_analysis(pkg_info)
         @groupby(:new_dependencies, :dropped_dependencies)
         @combine(:pkg_count = length(:package), :packages = join(:package, ","))
         @sort(-:pkg_count)
+
+        # Block list of packages not to be shown in the analysis
         @subset((:new_dependencies != nothing) &
                 (:dropped_dependencies != nothing) &
                 (:new_dependencies != ["Test"]) &
-                (:dropped_dependencies != ["Test"])
+                (!(:dropped_dependencies ∈ [["Test"], ["Pkg"]]))
         )
         @transform(:difflist = sort([:new_dependencies; :dropped_dependencies]))
     end
@@ -106,7 +108,7 @@ function generate_pkg_analysis(pkg_info)
     dupes = pkg_analysis[!, :difflist] .∈ (pkg_analysis[nonunique(pkg_analysis, :difflist), :difflist], )
 
     pkg_swaps = sort(unique(vcat(pkg_analysis[!, :new_dependencies]..., pkg_analysis[!, :dropped_dependencies]...)))
-    return pkg_swaps
+    return pkg_swaps, pkg_analysis
 end
 
 function pull_pkg_links(dep_files)
@@ -154,13 +156,16 @@ function print_pkg_swap_output(pkg_files, sample_output)
         dep_out = r[:dropped_dependencies][1]
         dep_in = r[:new_dependencies][1]
 
-        dep_out_link = @chain df_pkg @subset(:pkg == dep_out) @select(:repo) _[!, 1][1]
-        dep_in_link = @chain df_pkg @subset(:pkg == dep_in) @select(:repo) _[!, 1][1]
+        dep_out_link = @chain df_pkg @subset(:pkg == dep_out) @select(:repo)
+        dep_out_link = nrow(dep_out_link) > 0 ? dep_out_link[!, 1][1] : ""
+
+        dep_in_link = @chain df_pkg @subset(:pkg == dep_in) @select(:repo)
+        dep_in_link = nrow(dep_in_link) > 0 ? dep_in_link[!, 1][1] : ""
 
         dep_out_fmt = Term.creat_link(dep_out_link, String(dep_out))
         dep_in_fmt = Term.creat_link(dep_in_link, String(dep_in))
         println(
-            @italic(@red(dep_out_fmt)) * " ↗️ " * @bold(@green(dep_in_fmt))
+            @italic(@red(dep_out_fmt)) * "  ↗️  " * @bold(@green(dep_in_fmt)) * @bold(" ($(r[:pkg_count])) ")
         )
     end
 end
@@ -177,14 +182,14 @@ function recommend(; path = "Project.toml")
 
     pkg_info = build_pkg_info(ver_dict, dep_dict)
 
-    pkg_swaps = generate_pkg_analysis(pkg_info)
+    pkg_swaps, pkg_analysis = generate_pkg_analysis(pkg_info)
 
-    sample_output = @chain pkg_swaps begin
+    sample_output = @chain pkg_analysis begin
         @subset(
             (:dropped_dependencies ∈ deps_list)
         )
         @subset(:pkg_count > 1)
-        @select(:dropped_dependencies, :new_dependencies)
+        @select(:dropped_dependencies, :new_dependencies, :pkg_count)
     end
 
 
