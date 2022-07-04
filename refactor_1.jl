@@ -4,17 +4,7 @@
 using Markdown
 using InteractiveUtils
 
-# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
-macro bind(def, element)
-    quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
-        local el = $(esc(element))
-        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
-        el
-    end
-end
-
-# ╔═╡ c6c4c3c8-0627-45d6-9447-6e3df722fb06
+# ╔═╡ 6aa18682-fbce-11ec-19b3-a52e73a4789a
 begin
 	using TOML
 	using ReadableRegex
@@ -33,13 +23,7 @@ begin
 	if !("General" in readdir())
 		run(`git clone https://github.com/JuliaRegistries/General.git`)
 	end
-end
 
-# ╔═╡ c9007dce-1da2-4cbf-821d-3b3cba6bb2eb
-cm"# Package Swaps: Julia Package Economy Preliminary Analysis"
-
-# ╔═╡ 424b80c0-5c5d-4ff2-8285-9f08f2f5d62e
-begin
 	deps_toml_regex = "General/" * exactly(1, LETTER) *
 					  "/" * one_or_more(char_not_in("/")) *
 					  "/Deps.toml"
@@ -52,57 +36,37 @@ begin
 			end
 		end
 	end
-	
-	dep_files
-end
-
-# ╔═╡ a61c0650-c73f-4ee2-87de-f9fe5e49006a
-pkg_name_from_path = x -> split(x, '/')[3]
-
-# ╔═╡ 3df77bf7-c364-4e27-bc06-a44d57d6db50
 
 
-# ╔═╡ 667f1492-4549-48b7-83f7-792628135594
-function parse_deps_toml(dep_path)
-	deps_data_toml= TOML.parsefile(dep_path)
-	# Borrowed from here: https://github.com/JuliaLang/Pkg.jl/blob/503f31f64bcda5a60f0b3676730b689ff1f91aa9/src/Registry/registry_instance.jl#L172
-	deps_data_toml = convert(Dict{String, Dict{String, String}}, deps_data_toml)
-	deps = Dict{VersionRange, Dict{String, UUID}}()
-	for (v, data) in deps_data_toml
-		vr = VersionRange(v)
-		d = Dict{String, UUID}(dep => UUID(uuid) for (dep, uuid) in data)
-		deps[vr] = d
+	function parse_deps_toml(dep_path)
+		deps_data_toml= TOML.parsefile(dep_path)
+		# Borrowed from here: https://github.com/JuliaLang/Pkg.jl/blob/503f31f64bcda5a60f0b3676730b689ff1f91aa9/src/Registry/registry_instance.jl#L172
+		deps_data_toml = convert(Dict{String, Dict{String, String}}, deps_data_toml)
+		deps = Dict{VersionRange, Dict{String, UUID}}()
+		for (v, data) in deps_data_toml
+			vr = VersionRange(v)
+			d = Dict{String, UUID}(dep => UUID(uuid) for (dep, uuid) in data)
+			deps[vr] = d
+		end
+		return deps
 	end
-	return deps
-end
 
-# ╔═╡ 0da5cc42-99e8-418c-95ca-93aa26c1e796
-function parse_vers_toml(dep_path)
-	# Borrowed from here: https://github.com/JuliaLang/Pkg.jl/blob/503f31f64bcda5a60f0b3676730b689ff1f91aa9/src/Registry/registry_instance.jl#L154
-
-	dep_path = dirname(dep_path) * "/Versions.toml"
-	d_v= TOML.parsefile(dep_path)
-    version_info = Dict{VersionNumber, VersionInfo}(VersionNumber(k) =>
-        VersionInfo(SHA1(v["git-tree-sha1"]::String), get(v, "yanked", false)::Bool) for (k, v) in d_v)
+	function parse_vers_toml(dep_path)
+		# Borrowed from here: https://github.com/JuliaLang/Pkg.jl/blob/503f31f64bcda5a60f0b3676730b689ff1f91aa9/src/Registry/registry_instance.jl#L154
 	
-	return version_info
-end
+		dep_path = dirname(dep_path) * "/Versions.toml"
+		d_v= TOML.parsefile(dep_path)
+	    version_info = Dict{VersionNumber, VersionInfo}(VersionNumber(k) =>
+	        VersionInfo(SHA1(v["git-tree-sha1"]::String), get(v, "yanked", false)::Bool) 	for (k, v) in d_v)
+		
+		return version_info
+	end
 
-# ╔═╡ 2851f582-a3dc-48d2-b74a-8a2d013c9a43
-d_v = dirname("General/Z/Zomato/Deps.toml") * "/Versions.toml"
-
-# ╔═╡ 2b791542-ea24-42ac-87cb-c9dcc47a84a5
-dep_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_deps_toml.(dep_files)))
-
-# ╔═╡ b6dbb822-a951-42cd-a2f1-74e7cd79f250
-ver_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_vers_toml.(dep_files)))
-
-# ╔═╡ 4e77e29f-80aa-48ae-a034-fe29d1d8dcd1
-dep_dict["FastLapackInterface"]
-
-# ╔═╡ 58907d25-a0b5-431b-90be-259cae9bc6f1
-begin
-	# keys(ver_dict["FastLapackInterface"])
+	pkg_name_from_path = x -> split(x, '/')[3]
+	
+	dep_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_deps_toml.(dep_files)))
+	ver_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_vers_toml.(dep_files)))
+	
 	pkg_info = []
 	for pkg in keys(ver_dict)
 		for ver in ver_dict[pkg]
@@ -113,75 +77,36 @@ begin
 			end
 		end
 	end
-end
 
-# ╔═╡ 98d1cdda-0203-429c-9a27-de5605f04086
-begin
 	pkg_info_df = DataFrame(pkg_info)
 	rename!(pkg_info_df, ["package", "version", "dependency"])
-end
 
-# ╔═╡ 056ec327-0108-4d19-a081-eb013af79ed9
-pkg_analysis = @chain pkg_info_df begin
-	@groupby(:package, :version)
-	@combine(:dependencies = join(:dependency, ","))
-	@transform(:dependencies = split.(:dependencies, ","))
-	@sort(:package, :version)
-	@groupby(:package)
-	@transform(:dropped_dependencies = @c lag(:dependencies, 1))
-	@transform(:new_dependencies = @m sort(setdiff(:dependencies, :dropped_dependencies)))
-	@transform(:dropped_dependencies = @m sort(setdiff(:dropped_dependencies, :dependencies)))
-	@transform!(@subset((:new_dependencies == []) | (:new_dependencies === missing)), :new_dependencies = nothing)
-	@transform!(@subset((:dropped_dependencies == []) | (:dropped_dependencies === missing)), :dropped_dependencies = nothing)
-	@groupby(:new_dependencies, :dropped_dependencies)
-	@combine(:pkg_count = length(:package), :packages = join(:package, ","))
-	@sort(-:pkg_count)
-	@subset((:new_dependencies != nothing) &
-			(:dropped_dependencies != nothing) &
-			(:new_dependencies != ["Test"]) &
-			(:dropped_dependencies != ["Test"])
-	)
-	@transform(:difflist = sort([:new_dependencies; :dropped_dependencies]))
-end
+	pkg_analysis = @chain pkg_info_df begin
+		@groupby(:package, :version)
+		@combine(:dependencies = join(:dependency, ","))
+		@transform(:dependencies = split.(:dependencies, ","))
+		@sort(:package, :version)
+		@groupby(:package)
+		@transform(:dropped_dependencies = @c lag(:dependencies, 1))
+		@transform(:new_dependencies = @m sort(setdiff(:dependencies, :dropped_dependencies)))
+		@transform(:dropped_dependencies = @m sort(setdiff(:dropped_dependencies, :dependencies)))
+		@transform!(@subset((:new_dependencies == []) | (:new_dependencies === missing)), :new_dependencies = nothing)
+		@transform!(@subset((:dropped_dependencies == []) | (:dropped_dependencies === missing)), :dropped_dependencies = nothing)
+		@groupby(:new_dependencies, :dropped_dependencies)
+		@combine(:pkg_count = length(:package), :packages = join(:package, ","))
+		@sort(-:pkg_count)
+		@subset((:new_dependencies != nothing) &
+				(:dropped_dependencies != nothing) &
+				(:new_dependencies != ["Test"]) &
+				(:dropped_dependencies != ["Test"])
+		)
+		@transform(:difflist = sort([:new_dependencies; :dropped_dependencies]))
+	end
 
-# ╔═╡ 4f1297e0-9a1b-4f1a-917e-f36dbae1a95e
-begin
 	dupes = pkg_analysis[!, :difflist] .∈ (pkg_analysis[nonunique(pkg_analysis, :difflist), :difflist], )
 	
-	@chain pkg_analysis[dupes, :] @sort(-:pkg_count) @select(:difflist, :packages, :pkg_count, :new_dependencies, :dropped_dependencies)
-end
+	pkg_swaps = sort(unique(vcat(pkg_analysis[!, :new_dependencies]..., pkg_analysis[!, :dropped_dependencies]...)))
 
-# ╔═╡ 12d5db00-8d44-48d5-ac94-6a067106c3fc
-pkg_swaps = sort(unique(vcat(pkg_analysis[!, :new_dependencies]..., pkg_analysis[!, :dropped_dependencies]...)))
-
-# ╔═╡ 32277022-83d6-484e-ad49-e0f965f8d274
-# @chain pkg_analysis @subset(:package == "DataFrames")# @sort(:version)
-@chain pkg_analysis @sort(-:pkg_count)
-# Graphs <- LightGraphs 61 times
-# OrderedCollections <- DataStructures 14
-# GeometryBasics <- GeometryTypes 14
-# Makie <- AbstractPlotting 12
-# CUDA <- CuArrays 9
-# Downloads <- HTTP 8
-# BinaryProvider <- BinDeps 8
-# JSON3 <- JSON 8
-# SciMLBase <- DiffEqBase 7
-# pkg_analysis
-
-# ╔═╡ 812a3dbb-90dc-43a9-89ca-e38b88919057
-@bind pkg_selected Select(pkg_swaps)
-
-# ╔═╡ b48d27c0-501b-438a-b2e9-f150bcaf876e
-@chain pkg_analysis @subset((pkg_selected ∈ :new_dependencies) | (pkg_selected ∈ :dropped_dependencies)) @sort(-:pkg_count) @select(:new_dependencies, :dropped_dependencies, :pkg_count, :packages)
-
-# ╔═╡ 8bca07fd-479b-4e5d-acb7-0c446692c837
-cm"## Try things out with sample file:"
-
-# ╔═╡ 95cd4181-f293-4920-adef-a00584dea951
-
-
-# ╔═╡ 75427a86-aa0b-49fc-b6f3-82424d19e897
-begin
 	deps_data_toml = TOML.parsefile("IPS_Project.toml")
 	deps_list = collect(keys(deps_data_toml["deps"]))
 	deps_list = [[i] for i in deps_list]
@@ -192,10 +117,7 @@ begin
 		@subset(:pkg_count > 1)
 		@select(:dropped_dependencies, :new_dependencies)
 	end
-end
 
-# ╔═╡ 4985e455-306a-432c-bee9-1f9c81facdce
-begin
 	pkg_toml_regex = "General/" * exactly(1, LETTER) *
 					  "/" * one_or_more(char_not_in("/")) *
 					  "/Package.toml"
@@ -209,60 +131,51 @@ begin
 		end
 	end
 	
-	pkg_files
-end
-
-# ╔═╡ 19da8301-7836-4a3f-b6e0-01356f585a52
-function parse_pkg_toml(pkg_path)
-	# Borrowed from here: https://github.com/JuliaLang/Pkg.jl/blob/503f31f64bcda5a60f0b3676730b689ff1f91aa9/src/Registry/registry_instance.jl#L154
-	d_v = TOML.parsefile(pkg_path)	
-	return d_v
-end
-
-# ╔═╡ 198026fe-0ce1-4144-b005-9fdcd05b8a61
-df_pkg = @chain pkg_files begin
-	parse_pkg_toml.()
-	hcat
-	DataFrame(:auto)
-	@select(:pkg = :x1["name"], :repo = :x1["repo"])
-end
-
-# ╔═╡ b80ae0b7-3eb3-44c8-b2bc-e908f8004902
-
-
-# ╔═╡ a14d7f5a-a387-40fc-8eed-09881625789a
-begin
-	println(
-		@bold("Suggested Package Swaps:")
-	)
-	println()
-	dep_out = ""
-	for r in eachrow(sample_output)
-		if dep_out != r[:dropped_dependencies][1]
-			if dep_out != ""
-				println()
-			end
-		end
-		dep_out = r[:dropped_dependencies][1]
-		dep_in = r[:new_dependencies][1]
-
-		dep_out_link = @chain df_pkg @subset(:pkg == dep_out) @select(:repo) _[!, 1][1]
-		dep_in_link = @chain df_pkg @subset(:pkg == dep_in) @select(:repo) _[!, 1][1]
-
-		dep_out_fmt = Term.creat_link(dep_out_link, String(dep_out))
-		dep_in_fmt = Term.creat_link(dep_in_link, String(dep_in))
-		println(
-		    @italic(@red(dep_out_fmt)) * " ↗️ " * @bold(@green(dep_in_fmt))
-		)
+	function parse_pkg_toml(pkg_path)
+		# Borrowed from here: https://github.com/JuliaLang/Pkg.jl/blob/503f31f64bcda5a60f0b3676730b689ff1f91aa9/src/Registry/registry_instance.jl#L154
+		d_v = TOML.parsefile(pkg_path)	
+		return d_v
 	end
+
+	function print_pkg_swap_output(pkg_files, sample_output)
+		df_pkg = @chain pkg_files begin
+			parse_pkg_toml.()
+			hcat
+			DataFrame(:auto)
+			@select(:pkg = :x1["name"], :repo = :x1["repo"])
+		end
+	
+		println(
+			@bold("Suggested Package Swaps:")
+		)
+		println()
+		
+		dep_out = ""
+		for r in eachrow(sample_output)
+			if dep_out != r[:dropped_dependencies][1]
+				if dep_out != ""
+					println()
+				end
+			end
+			dep_out = r[:dropped_dependencies][1]
+			dep_in = r[:new_dependencies][1]
+	
+			dep_out_link = @chain df_pkg @subset(:pkg == dep_out) @select(:repo) _[!, 1][1]
+			dep_in_link = @chain df_pkg @subset(:pkg == dep_in) @select(:repo) _[!, 1][1]
+	
+			dep_out_fmt = Term.creat_link(dep_out_link, String(dep_out))
+			dep_in_fmt = Term.creat_link(dep_in_link, String(dep_in))
+			println(
+			    @italic(@red(dep_out_fmt)) * " ↗️ " * @bold(@green(dep_in_fmt))
+			)
+		end
+	end
+
+	print_pkg_swap_output(pkg_files, sample_output)
 end
 
-# ╔═╡ d3ec6605-a14f-4164-a56b-b2ccff0a0df6
-# Note: It would be possible to turn the packages into hyperlinked objects...
-println(Term.creat_link("https://google.com", "Google"))
+# ╔═╡ 04d7cd8b-31ff-48f2-a744-7ed48bfc117b
 
-# ╔═╡ 966c4199-2f2c-4dfe-8488-28cf4adfb740
-dep_out_link
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -279,14 +192,14 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Term = "22787eb5-b846-44ae-b979-8e399b8463ab"
 
 [compat]
-Chain = "~0.4.10"
+Chain = "~0.5.0"
 CommonMark = "~0.8.6"
 DataFrameMacros = "~0.2.1"
-DataFrames = "~1.3.2"
-PlutoUI = "~0.7.37"
+DataFrames = "~1.3.4"
+PlutoUI = "~0.7.39"
 ReadableRegex = "~0.3.2"
 ShiftedArrays = "~1.0.0"
-Term = "~1.0.1"
+Term = "~1.0.2"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -295,7 +208,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.9.0-DEV"
 manifest_format = "2.0"
-project_hash = "2a79d753909c5c8cd7f77c3ecabc1009cc0bdbd6"
+project_hash = "15e29cd4d8993f82fb9c2fc48325d2ec5fb1f1b6"
 
 [[deps.AbstractPlutoDingetjes]]
 deps = ["Pkg"]
@@ -314,15 +227,15 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 
 [[deps.Chain]]
-git-tree-sha1 = "339237319ef4712e6e5df7758d0bccddf5c237d9"
+git-tree-sha1 = "8c4920235f6c561e401dfe569beb8b924adad003"
 uuid = "8be319e6-bccf-4806-a6f7-6fae938471bc"
-version = "0.4.10"
+version = "0.5.0"
 
 [[deps.ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
-git-tree-sha1 = "024fe24d83e4a5bf5fc80501a314ce0d1aa35597"
+git-tree-sha1 = "eb7f0f8307f71fac7c606984ea5fb2817275d6e4"
 uuid = "3da002f7-5984-5a60-b8a6-cbb66c0b333f"
-version = "0.11.0"
+version = "0.11.4"
 
 [[deps.CommonMark]]
 deps = ["Crayons", "JSON", "URIs"]
@@ -332,9 +245,9 @@ version = "0.8.6"
 
 [[deps.Compat]]
 deps = ["Base64", "Dates", "DelimitedFiles", "Distributed", "InteractiveUtils", "LibGit2", "Libdl", "LinearAlgebra", "Markdown", "Mmap", "Pkg", "Printf", "REPL", "Random", "SHA", "Serialization", "SharedArrays", "Sockets", "SparseArrays", "Statistics", "Test", "UUIDs", "Unicode"]
-git-tree-sha1 = "96b0bc6c52df76506efc8a441c6cf1adcb1babc4"
+git-tree-sha1 = "9be8be1d8a6f44b96482c8af52238ea7987da3e3"
 uuid = "34da2185-b29b-5c13-b0c7-acf172513d20"
-version = "3.42.0"
+version = "3.45.0"
 
 [[deps.CompilerSupportLibraries_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -347,9 +260,9 @@ uuid = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 version = "4.1.1"
 
 [[deps.DataAPI]]
-git-tree-sha1 = "cc70b17275652eb47bc9e5f81635981f13cea5c8"
+git-tree-sha1 = "fb5f5316dd3fd4c5e7c30a24d50643b73e37cd40"
 uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
-version = "1.9.0"
+version = "1.10.0"
 
 [[deps.DataFrameMacros]]
 deps = ["DataFrames"]
@@ -359,15 +272,15 @@ version = "0.2.1"
 
 [[deps.DataFrames]]
 deps = ["Compat", "DataAPI", "Future", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrettyTables", "Printf", "REPL", "Reexport", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
-git-tree-sha1 = "ae02104e835f219b8930c7664b8012c93475c340"
+git-tree-sha1 = "daa21eb85147f72e41f6352a57fccea377e310a9"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "1.3.2"
+version = "1.3.4"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
-git-tree-sha1 = "3daef5523dd2e769dad2365274f760ff5f282c7d"
+git-tree-sha1 = "d1fff3a548102f48987a52a2e0d114fa97d730f0"
 uuid = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
-version = "0.18.11"
+version = "0.18.13"
 
 [[deps.DataValueInterfaces]]
 git-tree-sha1 = "bfc1187b79289637fa0ef6d4436ebdfe6905cbd6"
@@ -430,9 +343,10 @@ uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
 version = "0.0.4"
 
 [[deps.HypertextLiteral]]
-git-tree-sha1 = "2b078b5a615c6c0396c77810d92ee8c6f470d238"
+deps = ["Tricks"]
+git-tree-sha1 = "c47c5fa4c5308f27ccaac35504858d8914e102f9"
 uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
-version = "0.9.3"
+version = "0.9.4"
 
 [[deps.IOCapture]]
 deps = ["Logging", "Random"]
@@ -538,9 +452,9 @@ version = "0.12.3"
 
 [[deps.Parsers]]
 deps = ["Dates"]
-git-tree-sha1 = "85b5da0fa43588c75bb1ff986493443f821c70b7"
+git-tree-sha1 = "0044b23da09b5608b4ecacb4e5e6c6332f833a7e"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "2.2.3"
+version = "2.3.2"
 
 [[deps.Pkg]]
 deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
@@ -549,15 +463,15 @@ version = "1.8.0"
 
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "Markdown", "Random", "Reexport", "UUIDs"]
-git-tree-sha1 = "bf0a1121af131d9974241ba53f601211e9303a9e"
+git-tree-sha1 = "8d1f54886b9037091edf146b517989fc4a09efec"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.37"
+version = "0.7.39"
 
 [[deps.PooledArrays]]
 deps = ["DataAPI", "Future"]
-git-tree-sha1 = "db3a23166af8aebf4db5ef87ac5b00d36eb771e2"
+git-tree-sha1 = "a6062fe4063cdafe78f4a0a81cfffb89721b30e7"
 uuid = "2dfb63ee-cc39-5dd5-95bd-886bf059d720"
-version = "1.4.0"
+version = "1.4.2"
 
 [[deps.PrettyTables]]
 deps = ["Crayons", "Formatting", "Markdown", "Reexport", "Tables"]
@@ -655,13 +569,18 @@ version = "1.10.0"
 
 [[deps.Term]]
 deps = ["Dates", "Highlights", "InteractiveUtils", "Logging", "Markdown", "MyterialColors", "OrderedCollections", "Parameters", "ProgressLogging", "Tables", "UUIDs", "UnicodeFun"]
-git-tree-sha1 = "9b7ea2beefb11e89211b35b6e0d59cb31aa24550"
+git-tree-sha1 = "e4ccdfbdc073f71109c5fe0af7239c43714997d3"
 uuid = "22787eb5-b846-44ae-b979-8e399b8463ab"
-version = "1.0.1"
+version = "1.0.2"
 
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[deps.Tricks]]
+git-tree-sha1 = "6bac775f2d42a611cdfcd1fb217ee719630c4175"
+uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
+version = "0.1.6"
 
 [[deps.URIs]]
 git-tree-sha1 = "97bbe755a53fe859669cd907f2d96aee8d2c1355"
@@ -708,34 +627,7 @@ version = "17.4.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═c6c4c3c8-0627-45d6-9447-6e3df722fb06
-# ╠═c9007dce-1da2-4cbf-821d-3b3cba6bb2eb
-# ╠═424b80c0-5c5d-4ff2-8285-9f08f2f5d62e
-# ╠═a61c0650-c73f-4ee2-87de-f9fe5e49006a
-# ╠═3df77bf7-c364-4e27-bc06-a44d57d6db50
-# ╠═667f1492-4549-48b7-83f7-792628135594
-# ╠═0da5cc42-99e8-418c-95ca-93aa26c1e796
-# ╠═2851f582-a3dc-48d2-b74a-8a2d013c9a43
-# ╠═2b791542-ea24-42ac-87cb-c9dcc47a84a5
-# ╠═b6dbb822-a951-42cd-a2f1-74e7cd79f250
-# ╠═4e77e29f-80aa-48ae-a034-fe29d1d8dcd1
-# ╠═58907d25-a0b5-431b-90be-259cae9bc6f1
-# ╠═98d1cdda-0203-429c-9a27-de5605f04086
-# ╠═056ec327-0108-4d19-a081-eb013af79ed9
-# ╠═4f1297e0-9a1b-4f1a-917e-f36dbae1a95e
-# ╠═12d5db00-8d44-48d5-ac94-6a067106c3fc
-# ╠═32277022-83d6-484e-ad49-e0f965f8d274
-# ╠═812a3dbb-90dc-43a9-89ca-e38b88919057
-# ╠═b48d27c0-501b-438a-b2e9-f150bcaf876e
-# ╟─8bca07fd-479b-4e5d-acb7-0c446692c837
-# ╠═95cd4181-f293-4920-adef-a00584dea951
-# ╠═75427a86-aa0b-49fc-b6f3-82424d19e897
-# ╠═4985e455-306a-432c-bee9-1f9c81facdce
-# ╠═19da8301-7836-4a3f-b6e0-01356f585a52
-# ╠═198026fe-0ce1-4144-b005-9fdcd05b8a61
-# ╠═b80ae0b7-3eb3-44c8-b2bc-e908f8004902
-# ╠═a14d7f5a-a387-40fc-8eed-09881625789a
-# ╠═d3ec6605-a14f-4164-a56b-b2ccff0a0df6
-# ╠═966c4199-2f2c-4dfe-8488-28cf4adfb740
+# ╠═6aa18682-fbce-11ec-19b3-a52e73a4789a
+# ╠═04d7cd8b-31ff-48f2-a744-7ed48bfc117b
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
