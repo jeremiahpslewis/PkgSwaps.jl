@@ -62,7 +62,7 @@ end
 
 pkg_name_from_path = x -> split(x, '/')[3]
 
-function build_pkg_info(ver_dict)
+function build_pkg_info(ver_dict, dep_dict)
     pkg_info = []
     for pkg in keys(ver_dict)
         for ver in ver_dict[pkg]
@@ -165,7 +165,7 @@ function print_pkg_swap_output(pkg_files, sample_output)
     end
 end
 
-function recommend(path)
+function recommend(; path = "Project.toml")
     deps_data_toml = TOML.parsefile(path)
     deps_list = collect(keys(deps_data_toml["deps"]))
     deps_list = [[i] for i in deps_list]
@@ -175,7 +175,7 @@ function recommend(path)
     dep_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_deps_toml.(dep_files)))
     ver_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_vers_toml.(dep_files)))
 
-    pkg_info = build_pkg_info(ver_dict)
+    pkg_info = build_pkg_info(ver_dict, dep_dict)
 
     pkg_swaps = generate_pkg_analysis(pkg_info)
 
