@@ -8,8 +8,6 @@
 	using DataFrames
 	using DataFrameMacros
 	using ShiftedArrays
-	using PlutoUI
-	using CommonMark
 	using Term
 
 	if !("General" in readdir())
