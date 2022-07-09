@@ -15,6 +15,11 @@ using Scratch
 
 download_cache = ""
 
+function __init__()
+    global download_cache = @get_scratch!("downloaded_files")
+end
+
+module Internals
 
 # Downloads a resource, stores it within a scratchspace
 function download_dataset(url)
@@ -23,10 +28,6 @@ function download_dataset(url)
         download(url, fname)
     end
     return fname
-end
-
-function __init__()
-    global download_cache = @get_scratch!("downloaded_files")
 end
 
 function download_registry()
@@ -199,20 +200,22 @@ function print_pkg_swap_output(pkg_files, sample_output)
     end
 end
 
+end # Internals
+
 function recommend(; path = "Project.toml")
     deps_data_toml = TOML.parsefile(path)
     deps_list = collect(keys(deps_data_toml["deps"]))
     deps_list = [[i] for i in deps_list]
 
-    dep_files = crawl_general_registry()
+    dep_files = Internals.crawl_general_registry()
 
-    dep_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_deps_toml.(dep_files)))
-    ver_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_vers_toml.(dep_files)))
+    dep_dict = Dict(zip(Internals.pkg_name_from_path.(dep_files), Internals.parse_deps_toml.(dep_files)))
+    ver_dict = Dict(zip(Internals.pkg_name_from_path.(dep_files), Internals.parse_vers_toml.(dep_files)))
 
     # TODO: Handle multiple dependency case (where two packages swapped in or out)
-    pkg_info = build_pkg_info(ver_dict, dep_dict)
+    pkg_info = Internals.build_pkg_info(ver_dict, dep_dict)
 
-    pkg_swaps, pkg_analysis = generate_pkg_analysis(pkg_info, deps_list)
+    pkg_swaps, pkg_analysis = Internals,generate_pkg_analysis(pkg_info, deps_list)
 
     sample_output = @chain pkg_analysis begin
         @subset(
@@ -223,9 +226,9 @@ function recommend(; path = "Project.toml")
     end
 
 
-    pkg_files = pull_pkg_links(dep_files)
+    pkg_files = Internals.pull_pkg_links(dep_files)
     
-    print_pkg_swap_output(pkg_files, sample_output)
+    Internals.print_pkg_swap_output(pkg_files, sample_output)
 end
 
 
