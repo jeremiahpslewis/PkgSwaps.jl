@@ -137,7 +137,7 @@ function pull_pkg_links(dep_files)
                         "/" * one_or_more(char_not_in("/")) *
                         "/Package.toml"
     pkg_files = []
-    for (root, dirs, files) in walkdir("General")
+    for (root, dirs, files) in walkdir("$download_cache/General")
         for file in files
                 full_path = joinpath(root, file)
             if match(pkg_toml_regex, full_path) != nothing
