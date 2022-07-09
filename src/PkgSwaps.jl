@@ -15,6 +15,7 @@ using Scratch
 
 download_cache = ""
 
+
 # Downloads a resource, stores it within a scratchspace
 function download_dataset(url)
     fname = joinpath(download_cache, basename(url))
@@ -30,7 +31,7 @@ end
 
 function download_registry()
     if !("General" in readdir(download_cache))
-        run(`git clone https://github.com/JuliaRegistries/General.git $(joinpath(download_cache, "General"))`)
+        read(`git clone https://github.com/JuliaRegistries/General.git $(joinpath(download_cache, "General"))`, String)
     end
 end
 
@@ -80,7 +81,7 @@ function parse_vers_toml(dep_path)
     return version_info
 end
 
-pkg_name_from_path = x -> split(x, '/')[3]
+pkg_name_from_path = x -> split(x, '/')[end-1]
 
 function build_pkg_info(ver_dict, dep_dict)
     pkg_info = []
@@ -93,13 +94,14 @@ function build_pkg_info(ver_dict, dep_dict)
             end
         end
     end
-    return pkg_info
+    pkg_info_df = DataFrame(pkg_info)
+    rename!(pkg_info_df, ["package", "version", "dependency"])
+
+    return pkg_info_df
 end
 
 
-function generate_pkg_analysis(pkg_info)
-    pkg_info_df = DataFrame(pkg_info)
-    rename!(pkg_info_df, ["package", "version", "dependency"])
+function generate_pkg_analysis(pkg_info_df, deps_list)
 
     pkg_analysis = @chain pkg_info_df begin
         @groupby(:package, :version)
@@ -207,9 +209,10 @@ function recommend(; path = "Project.toml")
     dep_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_deps_toml.(dep_files)))
     ver_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_vers_toml.(dep_files)))
 
+    # TODO: Handle multiple dependency case (where two packages swapped in or out)
     pkg_info = build_pkg_info(ver_dict, dep_dict)
 
-    pkg_swaps, pkg_analysis = generate_pkg_analysis(pkg_info)
+    pkg_swaps, pkg_analysis = generate_pkg_analysis(pkg_info, deps_list)
 
     sample_output = @chain pkg_analysis begin
         @subset(
