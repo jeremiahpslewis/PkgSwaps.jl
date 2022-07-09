@@ -13,6 +13,12 @@ using ShiftedArrays
 using Term
 using Scratch
 
+download_cache = ""
+
+function __init__()
+    global download_cache = @get_scratch!("downloaded_files")
+end
+
 # Downloads a resource, stores it within a scratchspace
 function download_dataset(url)
     fname = joinpath(download_cache, basename(url))
