@@ -11,19 +11,42 @@ using DataFrames
 using DataFrameMacros
 using ShiftedArrays
 using Term
+using Scratch
 
 export recommend
 
+
+download_cache = ""
+
+# Downloads a resource, stores it within a scratchspace
+function download_dataset(url)
+    fname = joinpath(download_cache, basename(url))
+    if !isfile(fname)
+        download(url, fname)
+    end
+    return fname
+end
+
+function __init__()
+    global download_cache = @get_scratch!("downloaded_files")
+end
+
 function download_registry()
-    if !("General" in readdir())
-        run(`git clone https://github.com/JuliaRegistries/General.git`)
+    if !("General" in readdir(download_cache))
+        run(`git clone https://github.com/JuliaRegistries/General.git $download_cache`)
+    end
+end
+
+function crawl_general_registry()
+    if !("General" in readdir(download_cache))
+        download_registry()
     end
 
     deps_toml_regex = "General/" * exactly(1, LETTER) *
                         "/" * one_or_more(char_not_in("/")) *
                         "/Deps.toml"
     dep_files = []
-    for (root, dirs, files) in walkdir("General")
+    for (root, dirs, files) in walkdir("$download_cache/General")
         for file in files
                 full_path = joinpath(root, file)
             if match(deps_toml_regex, full_path) != nothing
