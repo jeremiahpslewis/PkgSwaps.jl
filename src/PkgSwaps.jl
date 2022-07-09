@@ -30,7 +30,7 @@ end
 
 function download_registry()
     if !("General" in readdir(download_cache))
-        run(`git clone https://github.com/JuliaRegistries/General.git $download_cache`)
+        run(`git clone https://github.com/JuliaRegistries/General.git $(joinpath(download_cache, "General"))`)
     end
 end
 
