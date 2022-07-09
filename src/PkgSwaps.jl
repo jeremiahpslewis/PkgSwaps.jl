@@ -9,8 +9,8 @@ using Scratch
 
 include("Internals.jl")
 
-function recommend(; path = "Project.toml")
-    deps_data_toml = TOML.parsefile(path)
+function recommend(; project_toml_path = "Project.toml")
+    deps_data_toml = TOML.parsefile(project_toml_path)
     deps_list = collect(keys(deps_data_toml["deps"]))
     deps_list = [[i] for i in deps_list]
 
