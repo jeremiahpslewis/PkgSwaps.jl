@@ -13,9 +13,6 @@ using ShiftedArrays
 using Term
 using Scratch
 
-export recommend
-
-
 download_cache = ""
 
 # Downloads a resource, stores it within a scratchspace
