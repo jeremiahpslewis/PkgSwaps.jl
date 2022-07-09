@@ -205,7 +205,7 @@ function recommend(; path = "Project.toml")
     deps_list = collect(keys(deps_data_toml["deps"]))
     deps_list = [[i] for i in deps_list]
 
-    dep_files = download_registry()
+    dep_files = crawl_general_registry()
 
     dep_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_deps_toml.(dep_files)))
     ver_dict = Dict(zip(pkg_name_from_path.(dep_files), parse_vers_toml.(dep_files)))
