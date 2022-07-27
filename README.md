@@ -4,6 +4,9 @@
 
 ``PkgSwaps`` assumes that the ``General`` package registry accurately reflects the decisions of engaged package maintainers in their aim of developing the best packages possible. ``PkgSwaps`` takes advantage of these publicly available decisions in order to nudge use of 'Pareto optimal' dependency sets.
 
+![PkgSwaps Infographic](pkgswaps_infograph.svg)
+
+
 ```julia
 using PkgSwaps
 
