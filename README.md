@@ -7,6 +7,12 @@
 ![PkgSwaps Infographic](pkgswaps_infograph.svg)
 
 
+## How to use this package?
+
+1. Activate your environment
+
+2. Run the following
+
 ```julia
 using PkgSwaps
 
