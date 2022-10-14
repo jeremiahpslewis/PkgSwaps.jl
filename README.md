@@ -9,7 +9,14 @@
 
 ## How to use this package?
 
-1. Activate your environment
+1. Activate the environment you want analyzed
+
+```julia
+using Pkg
+
+Pkg.activate("environment/path/here")
+```
+
 
 2. Run the following
 
