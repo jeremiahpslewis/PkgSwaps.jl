@@ -9,8 +9,9 @@ import Pkg.Versions: VersionRange
 import Pkg.Registry: VersionInfo
 using DataFrames
 using DataFrameMacros
-using ShiftedArrays
+using ShiftedArrays: lag
 using Term
+using Term.Links
 using Scratch
 
 download_cache = ""
@@ -108,9 +109,9 @@ function generate_pkg_analysis(pkg_info_df, deps_list)
         @transform(:dependencies = split.(:dependencies, ","))
         @sort(:package, :version)
         @groupby(:package)
-        @transform(:dropped_dependencies = @c lag(:dependencies, 1))
-        @transform(:new_dependencies = @m sort(setdiff(:dependencies, :dropped_dependencies)))
-        @transform(:dropped_dependencies = @m sort(setdiff(:dropped_dependencies, :dependencies)))
+        @transform(:dropped_dependencies = @bycol lag(:dependencies, 1))
+        @transform(:new_dependencies = @passmissing sort(setdiff(:dependencies, :dropped_dependencies)))
+        @transform(:dropped_dependencies = @passmissing sort(setdiff(:dropped_dependencies, :dependencies)))
         @transform!(@subset((:new_dependencies == []) | (:new_dependencies === missing)), :new_dependencies = nothing)
         @transform!(@subset((:dropped_dependencies == []) | (:dropped_dependencies === missing)), :dropped_dependencies = nothing)
         @groupby(:new_dependencies, :dropped_dependencies)
@@ -190,10 +191,8 @@ function print_pkg_swap_output(pkg_files, sample_output)
         dep_in_link = @chain df_pkg @subset(:pkg == dep_in) @select(:repo)
         dep_in_link = nrow(dep_in_link) > 0 ? dep_in_link[!, 1][1] : ""
 
-        dep_out_fmt = Term.creat_link(dep_out_link, String(dep_out))
-        dep_in_fmt = Term.creat_link(dep_in_link, String(dep_in))
         println(
-            @italic(@red(dep_out_fmt)) * "  ↗️  " * @bold(@green(dep_in_fmt)) * @bold(" ($(r[:pkg_count])) ")
+            @italic(@red("$dep_out ($dep_out_link)")) * "  ↗️  " * @bold(@green("$dep_in ($dep_in_link)")) * @bold(" ($(r[:pkg_count])) ")
         )
     end
 end

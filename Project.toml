@@ -1,7 +1,7 @@
 name = "PkgSwaps"
 uuid = "729fbdb0-15f9-4c97-886d-de714606e99e"
 authors = ["Jeremiah Lewis <4462211+jlewis91@users.noreply.github.com> and contributors"]
-version = "0.0.1"
+version = "0.0.2"
 
 [deps]
 Chain = "8be319e6-bccf-4806-a6f7-6fae938471bc"
@@ -15,11 +15,11 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Term = "22787eb5-b846-44ae-b979-8e399b8463ab"
 
 [compat]
-Chain = "0.5"
-DataFrameMacros = "0.2"
+Chain = "0.6"
+DataFrameMacros = "0.4"
 DataFrames = "1"
 julia = "1.7"
 ReadableRegex = "0.3"
 Scratch = "1"
-ShiftedArrays = "1"
-Term = "1"
+ShiftedArrays = "2"
+Term = "2"
